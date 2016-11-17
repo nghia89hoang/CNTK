@@ -1325,6 +1325,14 @@ public:
 
     // We don't release accumulator as it is needed after forward pass.
 
+    size_t GetNumberOfSamples() const { return m_numSamples; }
+    void SetNumberOfSamples(size_t samples) { m_numSamples = samples; }
+
+    shared_ptr<Matrix<ElemType>> GetAccumulator() { return m_accumulator; }
+
+    // Copies internal accumulator to the output.
+    void SetValueToAccumulator();
+
 protected:
     void Reset();
 
