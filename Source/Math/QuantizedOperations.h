@@ -47,25 +47,23 @@ public:
         // Quantize
         if (!m_isAConstant || m_firstPass)
         {
-            int mk = m*k;
-            m_pMatA.resize(mk);
-            ArrayRef<short> refMatA(m_pMatA.data(), mk);
-            m_pQuantizerA->Quantize(ArrayRef<ElemType>(A, mk), refMatA);
+            m_pMatA.resize(m*k);
+            ArrayRef<short> refMatA(m_pMatA.data(), m_pMatA.size());
+            m_pQuantizerA->Quantize(ArrayRef<ElemType>(A, m_pMatA.size()), refMatA);
         }
         
         if (!m_isBConstant || m_firstPass)
         {
-            int nk = n*k;
-            m_pMatB.resize(nk);
-            ArrayRef<short> refMatB(m_pMatB.data(), nk);
-            m_pQuantizerB->Quantize(ArrayRef<ElemType>(B, nk), refMatB);
+            m_pMatB.resize(n*k);
+            ArrayRef<short> refMatB(m_pMatB.data(), m_pMatB.size());
+            m_pQuantizerB->Quantize(ArrayRef<ElemType>(B, m_pMatB.size()), refMatB);
         }
 
         m_firstPass = false;
 
         // Do multiply
         // Naive inefficient product, just for demonstation
-        // TODO: implement an efficient version, e.g. IPG, block multiplier, Eigen, gemmlowp, etc.
+        // TODO: replace with an efficient version, e.g. IPG, block multiplier, Eigen, gemmlowp, etc.
         for (size_t i = 0; i < m; i++)
             for (size_t j = 0; j < n; j++)
             {

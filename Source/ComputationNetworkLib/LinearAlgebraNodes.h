@@ -362,7 +362,7 @@ public:
         auto input0 = OneSampleTensorFor(0,  /*gradient=*/false, fr.AllowBroadcast());
         auto input1 = OneSampleTensorFor(1,  /*gradient=*/false, fr.AllowBroadcast());
         auto output = OneSampleTensorFor(-1, /*gradient=*/false, fr);
-        output.AssignMatrixProductOf(false/*transC*/, input0, m_transpose/*transA*/, input1, false/*transB*/, 1.0f, m_pQuantizedMultiplier);
+        output.AssignMatrixProductOf(false/*transC*/, input0, m_transpose/*transA*/, input1, false/*transB*/, 1.0f, this->m_pQuantizedMultiplier);
     }
 
     virtual void /*ComputationNode::*/ BackpropTo(const size_t inputIndex, const FrameRange& fr) override
@@ -662,23 +662,23 @@ template class TransposeTimesNode<double>;
 
 // Fixed-point matrix product. This scales inputs to 16bit signed integers by Symmetric quantizers, performs
 // integer multiplication using SSE/AVX2, and transforms the results back.
-// Only dense untransposed matrix multiplication will be quantized; if at least one matrix is sparse then it will fall back to un-quantized default evaluation
+// Only dense untransposed matrix multiplication will be quantized. If at least one matrix is sparse then it will fall back to un-quantized default evaluation
 // Currently it works for CPU only. On GPU logicError will be thrown.
 // One way to include this node to the network is with the Edit command:
 // ...
-// node => if node.name == 'LSTMoutput1.output' then SymmetricQuantizedTimes(node.inputs[0], node.inputs[1], bitShiftA=1, bitShiftB=2) else node,
+// node => if node.name == 'LSTMoutput1.output' then QuantizedTimes(node.inputs[0], node.inputs[1], bitShiftA=1, bitShiftB=2) else node,
 // ...
 // bitShift(A|B) - bit shift parameters of quantizers for matrices A and B, see the quantizers for more details. Decreases the maximum range of quantziation by 2^bitShift to prevent integer overflow during BLAS routines.
 // bitShift=0 doesn't change the range; higher bitShift will decrease precision of quantization, but will make BLAS routines less prone to overflow.
 // Other parameters - refer to the base multiplication class
 template <class ElemType>
-class SymmetricQuantizedTimesNode : public TimesNodeBase<ElemType, false>
+class QuantizedTimesNode : public TimesNodeBase<ElemType, false>
 {
     typedef TimesNodeBase<ElemType, false> Base;
     UsingComputationNodeMembersBoilerplate;
     static const std::wstring TypeName()
     {
-        return L"SymmetricQuantizedTimes";
+        return L"QuantizedTimes";
     }
 
 private:
@@ -687,7 +687,7 @@ private:
     size_t m_bitShiftB; 
 
 public:
-    SymmetricQuantizedTimesNode(DEVICEID_TYPE deviceId, const wstring& name, size_t bitShiftA = 1, size_t bitShiftB = 1, size_t outputRank = 1, int inferInputRankToMap = -1)
+    QuantizedTimesNode(DEVICEID_TYPE deviceId, const wstring& name, size_t bitShiftA = 1, size_t bitShiftB = 1, size_t outputRank = 1, int inferInputRankToMap = -1)
         : Base(deviceId, name, outputRank, inferInputRankToMap), m_bitShiftA(bitShiftA), m_bitShiftB(bitShiftB)
     {
         // TODO support multiplication on GPUs as well.
@@ -696,11 +696,11 @@ public:
 
         shared_ptr<SymmetricQuantizer<ElemType, short>> pQA(new SymmetricQuantizer<ElemType, short>(m_bitShiftA));
         shared_ptr<SymmetricQuantizer<ElemType, short>> qQB(new SymmetricQuantizer<ElemType, short>(m_bitShiftB));
-        m_pQuantizedMultiplier = shared_ptr<QuantizedMultiplier<ElemType>>(new QuantizedMultiplier<ElemType>(pQA, qQB));
+        this->m_pQuantizedMultiplier = shared_ptr<QuantizedMultiplier<ElemType>>(new QuantizedMultiplier<ElemType>(pQA, qQB));
     }
 
-    SymmetricQuantizedTimesNode(const ScriptableObjects::IConfigRecordPtr configp)
-        : SymmetricQuantizedTimesNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get(L"bitShiftA"), configp->Get(L"bitShiftB"), configp->Get(L"outputRank"), configp->Get(L"inferInputRankToMap"))
+    QuantizedTimesNode(const ScriptableObjects::IConfigRecordPtr configp)
+        : QuantizedTimesNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get(L"bitShiftA"), configp->Get(L"bitShiftB"), configp->Get(L"outputRank"), configp->Get(L"inferInputRankToMap"))
     {
         AttachInputsFromConfig(configp, this->GetExpectedNumInputs());
     }
@@ -710,7 +710,7 @@ public:
         Base::CopyTo(nodeP, newName, flags);
         if (flags & CopyNodeFlags::copyNodeValue)
         {
-            auto node = dynamic_pointer_cast<SymmetricQuantizedTimesNode<ElemType>>(nodeP);
+            auto node = dynamic_pointer_cast<QuantizedTimesNode<ElemType>>(nodeP);
             node->m_bitShiftA = m_bitShiftA;
             node->m_bitShiftB = m_bitShiftB;
         }
@@ -733,9 +733,9 @@ public:
     virtual void /*ComputationNode::*/ ForwardProp(const FrameRange& fr) override
     {
         if (dynamic_pointer_cast<LearnableParameter<ElemType>>(Input(0)))
-            m_pQuantizedMultiplier->SetIsAConstant(true);
+            this->m_pQuantizedMultiplier->SetIsAConstant(true);
         if (dynamic_pointer_cast<LearnableParameter<ElemType>>(Input(1)))
-            m_pQuantizedMultiplier->SetIsBConstant(true);
+            this->m_pQuantizedMultiplier->SetIsBConstant(true);
 
         Base::ForwardProp(fr);
     }
@@ -747,8 +747,8 @@ public:
     }
 };
 
-template class SymmetricQuantizedTimesNode<float>;
-template class SymmetricQuantizedTimesNode<double>;
+template class QuantizedTimesNode<float>;
+template class QuantizedTimesNode<double>;
 
 // -----------------------------------------------------------------------
 // SumElementsNode (input)
