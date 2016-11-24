@@ -587,6 +587,7 @@ struct nocase_compare
 // ----------------------------------------------------------------------------
 
 // Array class
+// Wrapper that holds pointer to data, as well as size
 template <class T>
 class ArrayRef
 {

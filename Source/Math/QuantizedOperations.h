@@ -18,14 +18,10 @@ class QuantizedMultiplier
     shared_ptr<QuantizerBase<ElemType, short>> m_pQuantizerA;
     shared_ptr<QuantizerBase<ElemType, short>> m_pQuantizerB;
 
-    // Containers for quantized matrices A and B
-    shared_ptr<ArrayRef<short>> m_pQuantizedA;
-    shared_ptr<ArrayRef<short>> m_pQuantizedB;
-
     // Placeholders for quantized matrices A and B
     vector<short> m_pMatA, m_pMatB;
 
-    // if matrices A and B are constant (i.e. weights)
+    // Whether matrices A and B are constant (i.e. weights)
     // If the matrix is constant, the size of the underlying container for quatized values will be preserved for
     // the lifespan of the object
     bool m_isAConstant;
@@ -45,49 +41,27 @@ public:
     {
     };
 
-    ~QuantizedMultiplier()
-    {
-    }
-
     // A[m,k]*B[k,n] = C[m,n]
     void Multiply(int m, int n, int k, ElemType* A, ElemType* B, ElemType* C)
     {
-        int mk = m*k;
-        int nk = n*k;
-        int mn = m*n;
-        if (m_firstPass)
-        {
-            m_pMatA.resize(mk);
-            m_pQuantizedA = shared_ptr<ArrayRef<short>>(new ArrayRef<short>(m_pMatA.data(), mk));
-
-            m_pMatB.resize(nk);
-            m_pQuantizedB = shared_ptr<ArrayRef<short>>(new ArrayRef<short>(m_pMatB.data(), nk));
-
-            if (m_isAConstant)
-                m_pQuantizerA->Quantize(ArrayRef<ElemType>(A, mk), *m_pQuantizedA);
-
-            if (m_isBConstant)
-                m_pQuantizerB->Quantize(ArrayRef<ElemType>(B, nk), *m_pQuantizedB);
-
-            m_firstPass = false;
-        }
-
         // Quantize
-        if (!m_isAConstant)
+        if (!m_isAConstant || m_firstPass)
         {
+            int mk = m*k;
             m_pMatA.resize(mk);
-            m_pQuantizedA->setSize(mk);
-
-            m_pQuantizerA->Quantize(ArrayRef<ElemType>(A, m*k), *m_pQuantizedA);
+            ArrayRef<short> refMatA(m_pMatA.data(), mk);
+            m_pQuantizerA->Quantize(ArrayRef<ElemType>(A, mk), refMatA);
         }
         
-        if (!m_isBConstant)
+        if (!m_isBConstant || m_firstPass)
         {
+            int nk = n*k;
             m_pMatB.resize(nk);
-            m_pQuantizedB->setSize(nk);
-
-            m_pQuantizerB->Quantize(ArrayRef<ElemType>(B, n*k), *m_pQuantizedB);
+            ArrayRef<short> refMatB(m_pMatB.data(), nk);
+            m_pQuantizerB->Quantize(ArrayRef<ElemType>(B, nk), refMatB);
         }
+
+        m_firstPass = false;
 
         // Do multiply
         // Naive inefficient product, just for demonstation
@@ -99,12 +73,13 @@ public:
                 for (size_t l = 0; l < k; l++)
                 {
                     // CNTK is using column-major storage
-                    dotProduct += (*m_pQuantizedA)[i + l*m] * (*m_pQuantizedB)[l + k*j];
+                    dotProduct += m_pMatA[i + l*m] * m_pMatB[l + k*j];
                 }
                 C[i + j*m] = (ElemType)dotProduct;
             }
 
         // De-quantize
+        int mn = m*n;
         m_pQuantizerB->Dequantize(C, C, mn);
         m_pQuantizerA->Dequantize(C, C, mn);
     }

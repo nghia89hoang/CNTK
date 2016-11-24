@@ -660,15 +660,16 @@ public:
 template class TransposeTimesNode<float>;
 template class TransposeTimesNode<double>;
 
-// Quantized matrix product. This scales inputs to 16bit signed integers by Symmetric quantizers, performs
+// Fixed-point matrix product. This scales inputs to 16bit signed integers by Symmetric quantizers, performs
 // integer multiplication using SSE/AVX2, and transforms the results back.
-// Only dense untransposed matrix multiplication will be quantized; if at least one matrix is sparse -- it will fall back to un-quantized default evaluation
-// Currently it works for CPU only.
+// Only dense untransposed matrix multiplication will be quantized; if at least one matrix is sparse then it will fall back to un-quantized default evaluation
+// Currently it works for CPU only. On GPU logicError will be thrown.
 // One way to include this node to the network is with the Edit command:
 // ...
 // node => if node.name == 'LSTMoutput1.output' then SymmetricQuantizedTimes(node.inputs[0], node.inputs[1], bitShiftA=1, bitShiftB=2) else node,
 // ...
-// bitShift(A|B) - bit shift parameters of quantizers for matrices A and B, see the quantizers for more details.
+// bitShift(A|B) - bit shift parameters of quantizers for matrices A and B, see the quantizers for more details. Decreases the maximum range of quantziation by 2^bitShift to prevent integer overflow during BLAS routines.
+// bitShift=0 doesn't change the range; higher bitShift will decrease precision of quantization, but will make BLAS routines less prone to overflow.
 // Other parameters - refer to the base multiplication class
 template <class ElemType>
 class SymmetricQuantizedTimesNode : public TimesNodeBase<ElemType, false>
@@ -702,10 +703,6 @@ public:
         : SymmetricQuantizedTimesNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get(L"bitShiftA"), configp->Get(L"bitShiftB"), configp->Get(L"outputRank"), configp->Get(L"inferInputRankToMap"))
     {
         AttachInputsFromConfig(configp, this->GetExpectedNumInputs());
-    }
-
-    virtual ~SymmetricQuantizedTimesNode()
-    {
     }
 
     virtual void CopyTo(ComputationNodeBasePtr nodeP, const std::wstring& newName, const CopyNodeFlags flags) const override

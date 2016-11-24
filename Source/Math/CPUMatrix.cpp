@@ -4691,7 +4691,7 @@ void CPUMatrix<ElemType>::MultiplyAndWeightedAdd(ElemType alpha, const CPUMatrix
     else
     {
         // TODO: support transpose product
-        if (mklTransB == CBLAS_TRANSPOSE::CblasTrans)
+        if (mklTransA == CBLAS_TRANSPOSE::CblasTrans || mklTransB == CBLAS_TRANSPOSE::CblasTrans)
             LogicError("Quantized multiplier currently doesn't support transpose.");
 
         pQuantizedMultiplier->Multiply(m, n, k, a.Data(), b.Data(), c.Data());

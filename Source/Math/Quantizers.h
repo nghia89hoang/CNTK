@@ -37,21 +37,22 @@ class SymmetricQuantizer : public QuantizerBase<RawType, QuantizedType>
     RawType m_quantizeFactor;
     RawType m_inverseQuantizerFactor;
 
-    // Decreases the quantization normalizer to prevent integer overflow during BLAS routines.
-    // Higher bitShift will decrease precision of quantization, but will make BLAS routines less prone to overflow.
-    // For quantization with shorts, recommended value of bitShift is from 1 to 3.
+    // Decreases the maximum range of quantziation by 2^bitShift to prevent integer overflow during BLAS routines.
+    // bitShift=0 doesn't change the range; higher bitShift will decrease precision of quantization, but will make BLAS routines less prone to overflow.
+    // For quantization with shorts, recommended value of bitShift is from 1 to 3, but it's model and feature dependent and should be experimented with for optimal results
     size_t m_bitShift; 
 public:
     // elements - collection to be quantized
     // bitShift - see comment above
-    SymmetricQuantizer(size_t bitShift) :m_bitShift(bitShift)
+    SymmetricQuantizer(size_t bitShift) : m_bitShift(bitShift)
     {
     }
 
     // Perform quantization of the input collection, put result into pre-allocated output collection
     virtual void Quantize(const ArrayRef<RawType>& input, ArrayRef<QuantizedType>& output)
     {
-        if (input.size() == 0) return;
+        if (input.size() == 0)
+            return;
         assert(input.size() == output.size());
 
         RawType absoluteMax = FindAbsMax(input);
