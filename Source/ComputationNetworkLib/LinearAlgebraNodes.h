@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <utility>
 #include <assert.h>
+#include <set>
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
@@ -1282,6 +1283,16 @@ template <class ElemType>
 void UpdateRunningAverage(ComputationNode<ElemType>& newInput, TensorView<ElemType>& runningAverage,
                           size_t& runningCount);
 
+class MPIWrapper;
+struct DistGradHeader;
+
+template <typename ElemType>
+void AggregateAccumulatorValuesAndUpdateEvaluation(
+    shared_ptr<ComputationNetwork> net,
+    set<shared_ptr<ComputationNodeBase>> evalNodesWhichAccumulateResult,
+    shared_ptr<DistGradHeader> gradHeader,
+    shared_ptr<MPIWrapper> mpi);
+
 // -----------------------------------------------------------------------
 // EpochAccumulatorNode calculates mean values of all samples used in forward pass.
 // During training, mean sample value is calculated in each epoch. Value of the node will contain mean sample value of
@@ -1325,16 +1336,21 @@ public:
 
     // We don't release accumulator as it is needed after forward pass.
 
+protected:
+
+    friend void AggregateAccumulatorValuesAndUpdateEvaluation<ElemType>(
+        shared_ptr<ComputationNetwork> net,
+        set<shared_ptr<ComputationNodeBase>> evalNodesWhichAccumulateResult,
+        shared_ptr<DistGradHeader> gradHeader,
+        shared_ptr<MPIWrapper> mpi);
+
+    void Reset();
+
     size_t GetNumberOfSamples() const { return m_numSamples; }
     void SetNumberOfSamples(size_t samples) { m_numSamples = samples; }
-
     shared_ptr<Matrix<ElemType>> GetAccumulator() { return m_accumulator; }
-
     // Copies internal accumulator to the output.
-    void SetValueToAccumulator();
-
-protected:
-    void Reset();
+    void CopyAccumulatorToValue();
 
     shared_ptr<Matrix<ElemType>> m_accumulator;
     size_t m_numSamples;

@@ -51,7 +51,7 @@ template <class NODESET>
 static std::vector<ComputationNodeBasePtr> GetReducedFlow(std::vector<ComputationNodeBasePtr> flow, const NODESET& from)
 {
     std::set<ComputationNodeBasePtr> isOnFlowFromAccumulatorNode(from.begin(), from.end());
-    std::vector<ComputationNodeBasePtr> reducedFlow{};
+    std::vector<ComputationNodeBasePtr> reducedFlow;
     for (auto& node : flow)
     {
         bool isChildNodeOnFlowFromAccumulatorNode = false;
@@ -77,14 +77,14 @@ static std::vector<ComputationNodeBasePtr> GetReducedFlow(std::vector<Computatio
 // Performs partial forward prop. Forward prop is done on nodes on flow from specified nodes (exclusive) to specified
 // root nodes (inclusive).
 template <class NODESET>
-void ComputationNetwork::ForwardProp(const NODESET& from, const NODESET& to)
+void ComputationNetwork::ForwardProp(const NODESET& fromNodes, const NODESET& toRootNodes)
 {
     FrameRange fr(nullptr);
-    for (const ComputationNodeBasePtr root : to)
+    for (const ComputationNodeBasePtr root : toRootNodes)
     {
         // Get the order in which forward pass should be performed from specified nodes to the current root node.
         auto controlNode = dynamic_pointer_cast<FlowControlNode>(GetNestedNetwork(root));
-        auto flow = GetReducedFlow(controlNode->m_nestedNodes, from);
+        auto flow = GetReducedFlow(controlNode->m_nestedNodes, fromNodes);
         // Perform forward pass.
         for (auto& node : flow)
         {

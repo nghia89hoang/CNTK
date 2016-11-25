@@ -146,7 +146,7 @@ public:
     // Performs partial forward prop. Forward prop is done on nodes on flow from specified nodes (exclusive) to
     // specified root nodes (inclusive).
     template <class NODESET>
-    void ForwardProp(const NODESET& from, const NODESET& to);
+    void ForwardProp(const NODESET& fromNodes, const NODESET& toRootNodes);
 
     static void BumpEvalTimeStamp(const std::vector<ComputationNodeBasePtr>& nodes);
     void ResetEvalTimeStamps();

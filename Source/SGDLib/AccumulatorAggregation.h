@@ -37,7 +37,7 @@ void AggregateAccumulatorValuesAndUpdateEvaluation(
     {
         auto node = dynamic_pointer_cast<EpochAccumulatorNode<ElemType>>(accumulatorNode);
         assert(sampleCount == node->GetNumberOfSamples());
-        auto& accumulator = *node->GetAccumulator();
+        Matrix<ElemType>& accumulator = *node->GetAccumulator();
         accumulator *= (ElemType) sampleCount;
         accumulatorValues.emplace_back(&accumulator);
     }
@@ -72,13 +72,12 @@ void AggregateAccumulatorValuesAndUpdateEvaluation(
 
     // Aggregate accumulator sums.
     bool samplesProcessed = distGradAgg->AggregateGradients(accumulatorValues, gradHeader.get(), /*resetState =*/false);
+    if (!samplesProcessed)
+        RuntimeError("Couldn't aggregate accumulator values.");
 
     // Accumulators should contain mean values. We calculated them based on aggregated sums and number of samples.
-    if (samplesProcessed)
-    {
-        for (Matrix<ElemType>* acc : accumulatorValues)
-            (*acc) /= (ElemType) gradHeader->numSamples;
-    }
+    for (Matrix<ElemType>* acc : accumulatorValues)
+        (*acc) /= (ElemType) gradHeader->numSamples;
 
     // Update output values of accumulator nodes.
     for (auto& accumulatorNode : allEpochAccumulatorNodes)
@@ -86,7 +85,7 @@ void AggregateAccumulatorValuesAndUpdateEvaluation(
         auto node = dynamic_pointer_cast<EpochAccumulatorNode<ElemType>>(accumulatorNode);
         node->SetNumberOfSamples(gradHeader->numSamples);
         node->BeginForwardProp();
-        node->SetValueToAccumulator();
+        node->CopyAccumulatorToValue();
         node->EndForwardProp();
         node->BumpEvalTimeStamp();
     }
