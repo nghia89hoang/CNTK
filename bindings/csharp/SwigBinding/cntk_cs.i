@@ -9,6 +9,7 @@
 %include <std_shared_ptr.i>
 %include <windows.i>
 %include <attribute.i>
+%include <arrays_csharp.i>
 %include "std_unordered_map.i"
 
 %{
@@ -76,7 +77,8 @@
 %ignore CNTK::MinibatchInfo;
 %ignore CNTK::DistributedTrainer;
 
-
+%apply float INPUT[]  { float *dataBuffer }
+%apply double INPUT[]  { double *dataBuffer }
 
 %include "CNTKLibraryInternals.h"
 %include "CNTKLibrary.h"
