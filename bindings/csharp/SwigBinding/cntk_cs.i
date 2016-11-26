@@ -120,6 +120,21 @@
     {
         return new CNTK::NDArrayView(CNTK::DataType::Double, viewShape, dataBuffer, numBufferElements * sizeof(double), device, readOnly);
     }
-
 }
 
+//
+// Function
+//
+%extend CNTK::Function {
+    ///
+    /// Computes and stores the values of specified variables in the 'outputs' map, using provided 'inputs' values corresponding
+    /// to each leaf variable of the function of VariableKind 'Input'.
+    /// The function does not return any variables that needed for backpropagation of gradients.
+    ///
+    void Evaluate(const std::unordered_map<Variable, ValuePtr>& arguments,
+                    std::unordered_map<Variable, ValuePtr>& outputs,
+                    const DeviceDescriptor& computeDevice = DeviceDescriptor::UseDefaultDevice())
+    {
+        self->Forward(arguments, outputs, computeDevice, {});
+    }
+}
