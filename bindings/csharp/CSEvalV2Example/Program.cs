@@ -42,7 +42,14 @@ namespace CSEvalV2Example
             var shape = new global::SizeTVector() {1, numOfSamples};
             var inputShape = inputVar.Shape().AppendShape(new NDShape(shape));
 
-            var inputNDArrayView = new NDArrayView(1.0, DataType.Float, inputShape);
+            uint numOfInputData = inputVar.Shape().TotalSize() * numOfSamples;
+            float[] inputData = new float[numOfInputData];
+            for (uint i = 0; i < numOfInputData; ++i)
+            {
+                inputData[i] = (float)(i % 255);
+            }
+
+            var inputNDArrayView = new NDArrayView(inputShape, inputData, numOfInputData, DeviceDescriptor.CPUDevice());
             var inputValue = new Value(inputNDArrayView);
 
             var inputMap = new UnorderedMapVariableValuePtr();
@@ -50,7 +57,13 @@ namespace CSEvalV2Example
 
             var outputShape = outputVar.Shape().AppendShape(new NDShape(shape));
 
-            var outputNDArrayView = new NDArrayView(1.0, DataType.Float, outputShape);
+            uint numOfOutputData = outputVar.Shape().TotalSize() * numOfSamples;
+            float[] outputData = new float[numOfOutputData];
+            for (uint i = 0; i < numOfOutputData; ++i)
+            {
+                outputData[i] = (float)0.0;
+            }
+            var outputNDArrayView = new NDArrayView(outputShape, outputData, numOfOutputData, DeviceDescriptor.CPUDevice());
             var outputValue = new Value(outputNDArrayView);
 
             var outputMap = new UnorderedMapVariableValuePtr();
@@ -58,8 +71,10 @@ namespace CSEvalV2Example
 
             myFunc.Evaluate(inputMap, outputMap, DeviceDescriptor.CPUDevice());
 
-            outputNDArrayView = outputValue.Data();
-
+            for (uint i = 0; i < numOfOutputData; ++i)
+            {
+                Console.WriteLine(outputData[i]);
+            }
         }
     }
 }
