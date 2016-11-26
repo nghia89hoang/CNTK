@@ -106,9 +106,20 @@
     }
 }
 
+//
+// NDArryView
+//
+%extend CNTK::NDArrayView {
+    // shall we use const float *dataBuffer
+    NDArrayView(const NDShape& viewShape, float *dataBuffer, size_t numBufferElements, const DeviceDescriptor& device, bool readOnly = false)
+    {
+        return new CNTK::NDArrayView(CNTK::DataType::Float, viewShape, dataBuffer, numBufferElements * sizeof(float), device, readOnly);
+    }
 
+    NDArrayView(const NDShape& viewShape, double *dataBuffer, size_t numBufferElements, const DeviceDescriptor& device, bool readOnly = false)
+    {
+        return new CNTK::NDArrayView(CNTK::DataType::Double, viewShape, dataBuffer, numBufferElements * sizeof(double), device, readOnly);
+    }
 
-
-
-
+}
 

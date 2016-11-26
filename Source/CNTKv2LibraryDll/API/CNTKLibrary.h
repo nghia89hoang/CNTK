@@ -401,8 +401,6 @@ namespace CNTK
         friend inline std::shared_ptr<T> MakeSharedObject(CtorArgTypes&& ...ctorArgs);
 
     public:
-
-#ifndef SWIGCSHARP
         ///
         /// Construct a NDArrayView with the specified 'dataBuffer' as the backing storage.
         /// The 'dataBuffer' must have been allocated on the specified 'device', must be at least
@@ -425,8 +423,6 @@ namespace CNTK
         template <typename ElementType>
         CNTK_API NDArrayView(const NDShape& viewShape, const SparseIndexType* colStarts, const SparseIndexType* rowIndices, const ElementType* nonZeroValues, size_t numNonZeroValues, const DeviceDescriptor& device, bool readOnly = false);
 
-#endif
-
         ///
         /// Construct a NDArrayView over newly allocated storage in the specified format on the specified 'device'.
         ///
@@ -439,7 +435,6 @@ namespace CNTK
             : NDArrayView(dataType, StorageFormat::Dense, viewShape, device)
         {}
 
-#ifndef SWIGCSHARP
         ///
         /// Construct a NDArrayView with the specified 'dataBuffer' as the backing storage.
         /// The 'dataBuffer' must have been allocated on the specified 'device', must be at least
@@ -494,8 +489,6 @@ namespace CNTK
             SetValue(value);
             m_isReadOnly = readOnly;
         }
-
-#endif
 
         ///
         /// Construct a NDArrayView over newly allocated dense storage on the specified device and assign the specified value to each element of the view.
@@ -639,10 +632,9 @@ namespace CNTK
         static const size_t AutoSelectRowColSplitPoint = SIZE_MAX;
 
     private:
-
         CNTK_API NDArrayView(::CNTK::DataType dataType, const DeviceDescriptor& device, ::CNTK::StorageFormat storageType, const NDShape& viewShape, bool readOnly, void* tensorView);
 
-
+    private:
         template <typename ElementType>
         static std::shared_ptr<Microsoft::MSR::CNTK::Matrix<ElementType>> GetMatrixImpl(const Microsoft::MSR::CNTK::TensorView<ElementType>* tensorView, size_t rowColSplitPoint);
 
